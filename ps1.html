@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solow Phase Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+  svg: { fontCache: 'none' },
+  startup: { ready() { MathJax.startup.defaultReady(); MathJax.startup.promise.then(() => { window.mjReady = true; window.dispatchEvent(new Event('mj-ready')); }); } }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+<style>
+:root {
+  --bg: #f5f6f4; --surface: #ffffff; --ink: #15171a; --ink-2: #4b5057; --ink-3: #8b9097;
+  --rule: #dcdfdc; --grid: #edefed; --accent: #1d4f91; --accent-soft: #e6eef8;
+  --blue: #2a78d6; --orange: #eb6834; --aqua: #1baf7a;
+  --f-display: "Spectral", Georgia, "Times New Roman", serif;
+  --f-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111315; --surface: #191b1e; --ink: #eef0f2; --ink-2: #b7bcc3; --ink-3: #7d838b;
+    --rule: #2c3035; --grid: #23262a; --accent: #8db8f0; --accent-soft: #1d2a3b;
+    --blue: #3987e5; --orange: #d95926; --aqua: #199e70;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111315; --surface: #191b1e; --ink: #eef0f2; --ink-2: #b7bcc3; --ink-3: #7d838b;
+  --rule: #2c3035; --grid: #23262a; --accent: #8db8f0; --accent-soft: #1d2a3b;
+  --blue: #3987e5; --orange: #d95926; --aqua: #199e70;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; padding: 0 20px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 40px 80px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(2rem, 4vw, 2.8rem); letter-spacing: -0.01em; }
+h2 { font-size: 1.75rem; margin-top: 64px; }
+h3 { font-size: 1.25rem; margin-top: 40px; }
+p { margin: 10px 0; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; }
+.lede { font-size: 1.08rem; color: var(--ink-2); }
+.ex-tag { font-family: var(--f-mono); font-size: 13px; color: var(--accent); font-weight: 500; display: block; margin-bottom: 4px; }
+.model { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 20px; margin: 18px 0; overflow-x: auto; }
+.model p { margin: 6px 0; }
+.steps { counter-reset: st; list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 10px; }
+.steps li { counter-increment: st; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 16px 10px 52px; position: relative; overflow-x: auto; }
+.steps li::before { content: counter(st); position: absolute; left: 16px; top: 12px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font: 600 13px/24px var(--f-mono); text-align: center; }
+.steps .sl { font-weight: 600; font-size: 13px; color: var(--ink-2); }
+
+/* control deck */
+.deck { background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--rule); padding: 12px 0; margin: 18px 0 8px; z-index: 5; }
+@media (min-width: 900px) { .deck.sticky { position: sticky; top: env(safe-area-inset-top, 0px); } }
+.deck-h { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; margin-bottom: 6px; }
+.ctls { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 18px; }
+.ctl { display: grid; grid-template-columns: 1fr auto; align-items: baseline; font-size: 13px; }
+.ctl .cl { color: var(--ink-2); }
+.ctl output { font-family: var(--f-mono); font-size: 12.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.ctl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 2px 0 0; }
+.ctl input:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.seg button { font: 500 13px var(--f-body); background: var(--surface); color: var(--ink-2); border: 0; padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+
+/* figures */
+.fig { margin: 22px 0 8px; }
+.fig-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 10px; }
+.fig-n { font-family: var(--f-mono); font-size: 12px; color: var(--accent); font-weight: 500; }
+.fig-t { font-family: var(--f-display); font-size: 1.15rem; font-weight: 600; }
+.fig-tools { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 4px 0 12px; }
+.fig-tools .ctl { min-width: 220px; flex: 1 1 220px; max-width: 360px; }
+.play { font: 600 13px var(--f-body); background: var(--accent); color: var(--surface); border: 0; border-radius: 6px; padding: 7px 14px; cursor: pointer; min-width: 84px; }
+.panels { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 12px 6px; min-width: 0; }
+.p-t { font-size: 13.5px; font-weight: 600; margin: 0 4px 2px; }
+.lg { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 12px; color: var(--ink-2); margin: 0 4px 4px; }
+.lg span { display: inline-flex; align-items: center; gap: 6px; }
+.lg i { width: 16px; height: 0; border-top: 2.5px solid; display: inline-block; }
+.lg i.d { border-top-style: dashed; }
+.lg i.o { width: 9px; height: 9px; border: 2px solid; border-radius: 50%; }
+.lg i.f { height: 10px; border: 0; border-radius: 2px; }
+.plot { position: relative; width: 100%; }
+.plot > svg { display: block; overflow: visible; touch-action: pan-y; }
+.plot .tick { font: 11px var(--f-mono); fill: var(--ink-3); }
+.plot .alabel { font: 500 12px var(--f-body); fill: var(--ink-2); }
+.plot .grid { stroke: var(--grid); stroke-width: 1; }
+.plot .zero { stroke: var(--ink-3); stroke-width: 1; }
+.plot .axis { stroke: var(--ink-3); stroke-width: 1; }
+.plot .cross { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.plot .dl { font: 500 11.5px var(--f-body); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 6px 10px; font-size: 12px; box-shadow: 0 4px 14px rgb(0 0 0 / .12); z-index: 3; white-space: nowrap; }
+.tip .th { font-family: var(--f-mono); color: var(--ink-2); margin-bottom: 2px; }
+.tip .tr { display: flex; align-items: center; gap: 6px; }
+.tip .tr i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.tip .tr b { margin-left: auto; padding-left: 12px; font: 500 12px var(--f-mono); }
+
+.readout { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin: 12px 0 0; }
+.ro { border-left: 2px solid var(--rule); padding: 2px 0 2px 10px; }
+.ro .k { font-size: 12px; color: var(--ink-2); }
+.ro .v { font: 500 15px var(--f-mono); font-variant-numeric: tabular-nums; }
+.notice { margin-top: 14px; padding: 12px 16px; background: var(--accent-soft); border-radius: 6px; max-width: none; }
+.notice b { color: var(--accent); }
+.notice ul { margin: 4px 0 0; padding-left: 20px; }
+.notice li { margin: 3px 0; }
+.chip { display: inline-block; font: 600 12px var(--f-body); padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+.chip.warn { background: color-mix(in srgb, var(--orange) 16%, transparent); color: var(--ink); }
+table.gr { border-collapse: collapse; font-size: 13.5px; margin-top: 12px; width: 100%; }
+.tblwrap { overflow-x: auto; }
+table.gr th, table.gr td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.gr th { font-size: 12px; color: var(--ink-2); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+table.gr td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.hint { font-size: 12.5px; color: var(--ink-3); }
+footer .credit { display: block; margin-top: 10px; color: var(--ink-2); font-weight: 500; }
+footer { margin-top: 64px; color: var(--ink-3); font-size: 13px; border-top: 1px solid var(--rule); padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+:root { --seq1: #86b6ef; --seq2: #5598e7; --seq3: #256abf; --seq4: #104281; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seq1: #184f95; --seq2: #256abf; --seq3: #5598e7; --seq4: #9ec5f4; } }
+:root[data-theme="dark"] { --seq1: #184f95; --seq2: #256abf; --seq3: #5598e7; --seq4: #9ec5f4; }
+mjx-container[jax="SVG"] { font-size: 108% !important; }
+mjx-container[jax="SVG"][display="true"] { margin: .6em 0 !important; }
+.plot foreignObject { overflow: visible; pointer-events: none; }
+.plot .fo { height: 100%; display: flex; align-items: flex-end; font: 500 12px/1.15 var(--f-body); white-space: nowrap; }
+.plot .fo.end { justify-content: flex-end; } .plot .fo.middle { justify-content: center; }
+.plot .fo > span { background: color-mix(in srgb, var(--surface) 82%, transparent); border-radius: 3px; padding: 0 2px; }
+.plot .fo.axl > span { background: none; color: var(--ink-2); }
+.tip mjx-container, .ro mjx-container, .chip mjx-container, .ctl mjx-container, .lg mjx-container { font-size: 100% !important; }
+.play mjx-container { font-size: 100% !important; }
+mjx-container[jax="SVG"] { white-space: nowrap; }
+.lg span { white-space: nowrap; }
+:root { --violet: #4a3aa7; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --violet: #9085e9; } }
+:root[data-theme="dark"] { --violet: #9085e9; }
+.panels.six { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.plot .fo.bare > span { background: none; }
+
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">CentER · Macroeconomics 1 · Problem Set 1 · Acemoglu 2.11 &amp; 2.12</div>
+  <h1>Solow Phase Lab</h1>
+  <p class="lede">Graphical companion to the two exercises. Move the parameters, press Play, and hover any chart to read values.</p>
+</header>
+
+<!-- ============================ 2.11 ============================ -->
+<section>
+<h2><span class="ex-tag">Exercise 2.11</span>Solow with land in fixed supply</h2>
+<div class="model">
+  <p>\[ F=L^{\beta}K^{\alpha}Z^{1-\alpha-\beta}\quad\Longrightarrow\quad \dot k = s\,(Z/L)^{1-\alpha-\beta}k^{\alpha}-(n+\delta)\,k. \]</p>
+</div>
+
+<div class="deck sticky" id="deck11">
+  <div class="deck-h">Parameters for all 2.11 figures</div>
+  <div class="ctls" id="ctl11"></div>
+</div>
+
+<h3>(a) No population growth</h3>
+<p>With \(L\) fixed, \(B=(Z/L)^{1-\alpha-\beta}\) is a constant and \(g(k)\equiv\dot k/k=sBk^{\alpha-1}-\delta\).</p>
+
+<div class="fig">
+  <div class="fig-h"><span class="fig-n">Fig. 1</span><span class="fig-t">Existence, uniqueness and stability of \(k^*\)</span></div>
+  <div class="fig-tools"><span class="hint">Click inside the left or middle panel to set the initial capital stock \(k(0)\).</span></div>
+  <div class="panels">
+    <div class="panel">
+      <div class="p-t">Solow diagram</div>
+      <div class="lg"><span><i style="border-color:var(--blue)"></i>saving \(sBk^{\alpha}\)</span><span><i style="border-color:var(--orange)"></i>depreciation \(\delta k\)</span><span><i class="o" style="border-color:var(--aqua)"></i>\(k(0)\)</span></div>
+      <div id="pA1"></div>
+    </div>
+    <div class="panel">
+      <div class="p-t">Growth rate \(g(k)=\dot k/k\)</div>
+      <div class="lg"><span><i style="border-color:var(--ink)"></i>\(g(k)\)</span><span><i class="d" style="border-color:var(--ink-3)"></i>\(-\delta\)</span><span><i class="o" style="border-color:var(--aqua)"></i>\(k(0)\)</span></div>
+      <div id="pA2"></div>
+    </div>
+    <div class="panel">
+      <div class="p-t">Time paths from several \(k(0)\)</div>
+      <div class="lg"><span><i style="border-color:var(--aqua)"></i>path from \(k(0)\)</span><span><i style="border-color:var(--ink-3)"></i>other \(k(0)\)</span></div>
+      <div id="pA3"></div>
+    </div>
+  </div>
+  <div class="notice"><b>What to notice</b>
+    <ul>
+      <li>Middle: \(g\) falls from \(+\infty\) to \(-\delta\), so it crosses zero once, and the arrows point to that crossing from both sides.</li>
+      <li>Right: paths never cross \(k^*\), so each one is monotone.</li>
+    </ul>
+  </div>
+</div>
+
+<h3>(b) Population growth</h3>
+<p>With \(L=e^{nt}\), land per worker shrinks and \(g(k,t)=sBe^{-\gamma t}k^{\alpha-1}-(n+\delta)\), with \(\gamma=(1-\alpha-\beta)n\). Its zero, the temporary steady state \(k^*(t)\), now moves.</p>
+
+<div class="fig">
+  <div class="fig-h"><span class="fig-n">Fig. 2</span><span class="fig-t">A steady state that keeps moving: \(k\) chases a target sliding to zero</span></div>
+  <div class="fig-tools">
+    <button class="play" id="playC" type="button">Play</button>
+    <label class="ctl"><span class="cl">time \(t\)</span><output id="tC-o"></output><input type="range" id="tC" min="0" max="1" step="0.001" value="0.03"></label>
+  </div>
+  <div class="panels">
+    <div class="panel">
+      <div class="p-t">Growth rate \(g(k,t)\) at time \(t\)</div>
+      <div class="lg"><span><i style="border-color:var(--ink)"></i>\(g(k,t)\)</span><span><i class="d" style="border-color:var(--ink-3)"></i>\(g(k,0)\)</span><span><i class="o" style="border-color:var(--blue)"></i>\(k^*(t)\)</span><span><i style="border-color:var(--aqua)"></i>\(k(t)\)</span></div>
+      <div id="pC1"></div>
+    </div>
+    <div class="panel">
+      <div class="p-t">\(k(t)\) against the temporary steady state</div>
+      <div class="lg"><span><i style="border-color:var(--aqua)"></i>\(k(t)\)</span><span><i class="d" style="border-color:var(--blue)"></i>\(k^*(t)\)</span><span><i class="d" style="border-color:var(--ink-3)"></i>\(k^*\) when \(n=0\)</span></div>
+      <div id="pC2"></div>
+    </div>
+    <div class="panel">
+      <div class="p-t">Factor prices (levels, log scale)</div>
+      <div class="lg"><span><i style="border-color:var(--orange)"></i>wage \(w\)</span><span><i style="border-color:var(--blue)"></i>land rent \(R_Z\)</span><span><i style="border-color:var(--ink)"></i>return to capital \(r\)</span></div>
+      <div id="pC3"></div>
+    </div>
+  </div>
+  <div class="notice"><b>What to notice</b>
+    <ul>
+      <li>Press Play: \(g\) shifts down and drags \(k^*(t)\) toward zero. At every instant \(k\) still moves toward \(k^*(t)\).</li>
+      <li>Middle: \(k\) rises, the falling target meets it, and \(k\) turns down. The sign of \(\dot k\) gives the direction, not where \(k\) ends up.</li>
+      <li>Right: the wage falls toward zero, land rent grows, and the return to capital settles at a positive constant.</li>
+    </ul>
+  </div>
+</div>
+
+<h3>(c) Malthusian population</h3>
+<p>Let population growth respond to income: \(n=n(y)\) with \(n'>0\) and \(n(\bar y)=0\). The figure uses \(n(y)=\bar n\,(1-\bar y/y)\).</p>
+<div class="fig">
+  <div class="fig-h"><span class="fig-n">Fig. 3</span><span class="fig-t">Constant \(n\) versus Malthusian \(n(y)\): \(y\to0\) versus \(y\to\bar y>0\)</span></div>
+  <div class="fig-tools">
+    <label class="ctl"><span class="cl">subsistence income \(\bar y/y(0)\)</span><output id="ybar-o"></output><input type="range" id="ybar" min="0.1" max="1.5" step="0.01" value="0.6"></label>
+    <label class="ctl"><span class="cl">horizon (years)</span><output id="T3-o"></output><input type="range" id="T3" min="100" max="3000" step="50" value="1200"></label>
+  </div>
+  <div class="panels">
+    <div class="panel">
+      <div class="p-t">The population rule \(n(y)\)</div>
+      <div class="lg"><span><i style="border-color:var(--blue)"></i>\(n(y)\)</span><span><i class="d" style="border-color:var(--ink-3)"></i>constant \(n\)</span></div>
+      <div id="pD1"></div>
+    </div>
+    <div class="panel">
+      <div class="p-t">Income per worker \(y(t)\)</div>
+      <div class="lg"><span><i style="border-color:var(--ink-3)"></i>constant \(n\)</span><span><i style="border-color:var(--blue)"></i>\(n(y)\)</span><span><i class="d" style="border-color:var(--orange)"></i>\(\bar y\)</span></div>
+      <div id="pD2"></div>
+    </div>
+    <div class="panel">
+      <div class="p-t">Population \(L(t)\) under \(n(y)\)</div>
+      <div class="lg"><span><i style="border-color:var(--blue)"></i>\(L(t)\)</span><span><i class="d" style="border-color:var(--orange)"></i>\(L^*\)</span></div>
+      <div id="pD3"></div>
+    </div>
+  </div>
+  <div class="notice"><b>What to notice</b>
+    <ul>
+      <li>With constant \(n\), \(y\to0\). With \(n(y)\), \(y\to\bar y>0\): above \(\bar y\) population grows and pushes \(y\) down, below it shrinks and pushes \(y\) up.</li>
+      <li>Raise \(Z\) or \(s\) in the deck: \(L^*\) rises, \(y^*\) does not.</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<!-- ============================ 2.12 ============================ -->
+<section>
+<h2><span class="ex-tag">Exercise 2.12</span>Only capitalists save</h2>
+<div class="model">
+  <p>Workers consume everything; capitalists save a share \(s_K\) of capital income: \[\dot k = s_K\,f'(k)\,k-(n+\delta)k,\qquad f(k)=k^{\alpha}.\] The golden rule \(k_{gold}\) solves \(f'(k)=n+\delta\).</p>
+</div>
+
+<div class="deck" id="deck12">
+  <div class="deck-h">Parameters for Fig. 4</div>
+  <div class="ctls" id="ctl12"></div>
+</div>
+
+<div class="fig">
+  <div class="fig-h"><span class="fig-n">Fig. 4</span><span class="fig-t">The capitalists' steady state against the golden rule</span></div>
+  <div class="panels">
+    <div class="panel">
+      <div class="p-t">Growth rate \(g(k)=\dot k/k\)</div>
+      <div class="lg"><span><i style="border-color:var(--ink)"></i>\(s_Kf'(k)-(n+\delta)\)</span><span><i class="d" style="border-color:var(--aqua)"></i>same with \(s_K=1\)</span></div>
+      <div id="pE1"></div>
+    </div>
+    <div class="panel">
+      <div class="p-t">Saving versus required investment</div>
+      <div class="lg"><span><i style="border-color:var(--blue)"></i>saving \(s_Kf'(k)k\)</span><span><i class="d" style="border-color:var(--aqua)"></i>capital income \(f'(k)k\)</span><span><i style="border-color:var(--orange)"></i>\((n+\delta)k\)</span></div>
+      <div id="pE2"></div>
+    </div>
+    <div class="panel">
+      <div class="p-t">Steady-state consumption \(c=f(k)-(n+\delta)k\)</div>
+      <div class="lg"><span><i style="border-color:var(--ink)"></i>\(c(k)\)</span><span><i class="o" style="border-color:var(--blue)"></i>\(k^*\)</span><span><i class="o" style="border-color:var(--aqua)"></i>\(k_{gold}\)</span></div>
+      <div id="pE3"></div>
+    </div>
+  </div>
+  <div class="notice"><b>What to notice</b>
+    <ul>
+      <li>Left: same picture as Fig. 1. The dashed curve is the economy with \(s_K=1\); its zero is \(k_{gold}\). With \(s_K\lt 1\) the zero comes earlier: \(k^*\lt k_{gold}\).</li>
+      <li>Middle: \((n+\delta)k\) meets capital income at \(k_{gold}\) and capitalists' saving at \(k^*\). Set \(s_K=1\) and they coincide.</li>
+      <li>Right: the gap costs steady-state consumption.</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<footer>Built for the PS1 tutorial (1 October 2026). \(L_0=1\) throughout; the form of \(n(y)\) in Fig. 3 is illustrative.<span class="credit">Niccolò Zaccaria · Tilburg University · Made with Claude</span></footer>
+</div>
+
+<script>
+/* ---------- shared helpers for the macro lab pages ---------- */
+const $ = s => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+const linspace = (a, b, n) => Array.from({ length: n }, (_, i) => a + (b - a) * i / (n - 1));
+function fmt(v) {
+  if (!isFinite(v)) return v > 0 ? '∞' : (v < 0 ? '−∞' : '—');
+  const a = Math.abs(v); let s;
+  if (a === 0) s = '0';
+  else if (a >= 1e5 || a < 1e-3) s = v.toExponential(1).replace('e+', 'e');
+  else if (a >= 100) s = v.toFixed(0);
+  else if (a >= 10) s = v.toFixed(1);
+  else if (a >= 1) s = v.toFixed(2);
+  else s = v.toFixed(3);
+  return s.replace('-', '−');
+}
+const pct = v => (v * 100).toFixed(2).replace('-', '−') + '%';
+function niceTicks(a, b, n = 5) {
+  const span = b - a; if (!(span > 0)) return [a];
+  const step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0))), e = step0 / mag;
+  const step = (e >= 7.5 ? 10 : e >= 3.5 ? 5 : e >= 1.5 ? 2 : 1) * mag;
+  const out = []; for (let v = Math.ceil(a / step - 1e-9) * step; v <= b + step * 1e-9; v += step) out.push(Math.abs(v) < step * 1e-6 ? 0 : +v.toPrecision(12));
+  return out;
+}
+
+/* ---- math typesetting: "$...$" segments in any label become MathJax SVG ---- */
+const texCache = new Map();
+const GREEK = { alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', lambda: 'λ', mu: 'μ', rho: 'ρ', sigma: 'σ', tau: 'τ', pi: 'π', Omega: 'Ω', varepsilon: 'ε', infty: '∞', to: '→', cdot: '·', times: '×', le: '≤', ge: '≥' };
+function texPlain(t) {
+  return t.replace(/\\(dot|bar|hat|tilde|mathbb|text|mathrm)\{([^}]*)\}/g, '$2').replace(/\\([a-zA-Z]+)/g, (m, w) => GREEK[w] ?? '').replace(/[{}]/g, '').replace(/\^/g, '').replace(/_/g, '');
+}
+function tx(tex) {
+  if (!window.mjReady) return texPlain(tex);
+  let h = texCache.get(tex);
+  if (h === undefined) { try { h = MathJax.tex2svg(tex, { display: false }).outerHTML; } catch (e) { h = texPlain(tex); } texCache.set(tex, h); }
+  return h;
+}
+const rich = s => String(s).replace(/\$([^$]+)\$/g, (_, t) => tx(t));
+const redrawers = [];
+function onMath(fn) { redrawers.push(fn); }
+window.addEventListener('mj-ready', () => redrawers.forEach(f => f()));
+
+let plotCount = 0;
+class Plot {
+  constructor(sel, { h = 290, xlabel = '', ylabel = '', onClick = null } = {}) {
+    this.el = $(sel); this.el.classList.add('plot'); this.h = h; this.xlabel = xlabel; this.ylabel = ylabel;
+    this.id = 'clip' + (plotCount++); this.m = { l: 50, r: 14, t: 26, b: 42 };
+    this.svg = document.createElementNS(NS, 'svg'); this.el.appendChild(this.svg);
+    this.tip = document.createElement('div'); this.tip.className = 'tip'; this.tip.hidden = true; this.el.appendChild(this.tip);
+    this.draw = null;
+    new ResizeObserver(() => this.redraw()).observe(this.el);
+    this.svg.addEventListener('pointermove', e => this.move(e));
+    this.svg.addEventListener('pointerleave', () => this.leave());
+    if (onClick) { this.svg.style.cursor = 'crosshair'; this.svg.addEventListener('click', e => { const p = this.inv(e); if (p) onClick(p.x, p.y); }); }
+  }
+  render(fn) { this.draw = fn; this.redraw(); }
+  redraw() {
+    const W = Math.max(240, this.el.clientWidth), H = this.h; this.W = W;
+    const s = this.svg; s.setAttribute('viewBox', `0 0 ${W} ${H}`); s.setAttribute('width', W); s.setAttribute('height', H);
+    s.innerHTML = ''; this.hov = null;
+    const cp = this.mk('clipPath', { id: this.id }, this.mk('defs', {}));
+    this.mk('rect', { x: this.m.l, y: this.m.t - 2, width: W - this.m.l - this.m.r, height: H - this.m.t - this.m.b + 4 }, cp);
+    this.gAx = this.mk('g', {}); this.g = this.mk('g', { 'clip-path': `url(#${this.id})` }); this.gTop = this.mk('g', {}); this.gH = this.mk('g', { 'pointer-events': 'none' });
+    if (this.draw) this.draw(this);
+    if (this.lastE) this.move(this.lastE);
+  }
+  mk(tag, attrs, parent = this.svg) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+  dom(x0, x1, y0, y1) { Object.assign(this, { x0, x1, y0, y1 }); }
+  sx(v) { const { l, r } = this.m; return l + (v - this.x0) / (this.x1 - this.x0) * (this.W - l - r); }
+  sy(v) { const { t, b } = this.m; return this.h - b - (v - this.y0) / (this.y1 - this.y0) * (this.h - t - b); }
+  inv(e) {
+    const R = this.svg.getBoundingClientRect(), px = e.clientX - R.left, py = e.clientY - R.top, { l, r, t, b } = this.m;
+    if (px < l || px > this.W - r || py < t || py > this.h - b) return null;
+    return { x: this.x0 + (px - l) / (this.W - l - r) * (this.x1 - this.x0), y: this.y0 + (this.h - b - py) / (this.h - t - b) * (this.y1 - this.y0), px, py };
+  }
+  // text at pixel coordinates; math segments ($...$) go through MathJax inside a foreignObject
+  ptext(X, Y, s, { c = 'var(--ink-2)', anchor = 'start', cls = 'dl', parent = this.gTop, axis = false, bare = false } = {}) {
+    if (String(s).includes('$')) {
+      const Wd = 320, Hd = 30, x = anchor === 'end' ? X - Wd : anchor === 'middle' ? X - Wd / 2 : X;
+      const fo = this.mk('foreignObject', { x, y: Y - Hd + 5, width: Wd, height: Hd }, parent);
+      const d = document.createElement('div'); d.className = 'fo ' + anchor + (axis ? ' axl' : '') + (bare ? ' bare' : ''); d.style.color = c;
+      d.innerHTML = `<span>${rich(s)}</span>`; fo.appendChild(d); return fo;
+    }
+    const e = this.mk('text', { x: X, y: Y, 'text-anchor': anchor, class: cls, fill: c }, parent); e.textContent = s; return e;
+  }
+  axes({ xf = fmt, yf = fmt, xt = 5, yt = 5, noX = false, zero = true } = {}) {
+    const { l, r, t, b } = this.m, W = this.W, H = this.h;
+    for (const v of niceTicks(this.y0, this.y1, yt)) { const y = this.sy(v); this.mk('line', { x1: l, x2: W - r, y1: y, y2: y, class: zero && v === 0 ? 'zero' : 'grid' }, this.gAx); this.mk('text', { x: l - 7, y: y + 4, 'text-anchor': 'end', class: 'tick' }, this.gAx).textContent = yf(v); }
+    if (!noX) for (const v of niceTicks(this.x0, this.x1, xt)) { const x = this.sx(v); this.mk('line', { x1: x, x2: x, y1: t, y2: H - b, class: 'grid' }, this.gAx); this.mk('text', { x, y: H - b + 16, 'text-anchor': 'middle', class: 'tick' }, this.gAx).textContent = xf(v); }
+    this.mk('line', { x1: l, x2: W - r, y1: H - b, y2: H - b, class: 'axis' }, this.gAx);
+    this.mk('line', { x1: l, x2: l, y1: t, y2: H - b, class: 'axis' }, this.gAx);
+    this.ptext(W - r, H - 4, this.xlabel, { anchor: 'end', cls: 'alabel', parent: this.gAx, axis: true, c: 'var(--ink-2)' });
+    this.ptext(4, 14, this.ylabel, { cls: 'alabel', parent: this.gAx, axis: true, c: 'var(--ink-2)' });
+  }
+  pathD(xs, ys) {
+    const span = this.y1 - this.y0; let d = '', pen = false;
+    for (let i = 0; i < xs.length; i++) {
+      let y = ys[i]; if (!isFinite(y) || !isFinite(xs[i])) { pen = false; continue; }
+      y = Math.min(Math.max(y, this.y0 - 3 * span), this.y1 + 3 * span);
+      d += (pen ? 'L' : 'M') + this.sx(xs[i]).toFixed(1) + ' ' + this.sy(y).toFixed(1); pen = true;
+    }
+    return d;
+  }
+  line(xs, ys, { c = 'var(--ink)', w = 2, dash = 'none', op = 1 } = {}) {
+    this.mk('path', { d: this.pathD(xs, ys), fill: 'none', stroke: c, 'stroke-width': w, 'stroke-dasharray': dash, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', opacity: op }, this.g);
+  }
+  band(xs, lo, hi, { c, op = .15 } = {}) {
+    if (xs.length < 2) return;
+    const cl = v => Math.min(Math.max(v, this.y0 - 1e3), this.y1 + 1e3);
+    let d = ''; for (let i = 0; i < xs.length; i++) d += (i ? 'L' : 'M') + this.sx(xs[i]).toFixed(1) + ' ' + this.sy(cl(hi[i])).toFixed(1);
+    for (let i = xs.length - 1; i >= 0; i--) d += 'L' + this.sx(xs[i]).toFixed(1) + ' ' + this.sy(cl(lo[i])).toFixed(1);
+    this.mk('path', { d: d + 'Z', fill: c, 'fill-opacity': op, stroke: 'none' }, this.g);
+  }
+  seg(x1, y1, x2, y2, { c = 'var(--ink-3)', w = 1, dash = '4 4' } = {}) {
+    this.mk('line', { x1: this.sx(x1), y1: this.sy(y1), x2: this.sx(x2), y2: this.sy(y2), stroke: c, 'stroke-width': w, 'stroke-dasharray': dash, 'stroke-linecap': 'round' }, this.g);
+  }
+  vl(x, o) { this.seg(x, this.y0, x, this.y1, o); }
+  hl(y, o) { this.seg(this.x0, y, this.x1, y, o); }
+  dot(x, y, { c = 'var(--ink)', r = 5, hollow = false } = {}) {
+    if (!isFinite(x) || !isFinite(y) || x < this.x0 || x > this.x1 || y < this.y0 - 1e-12 || y > this.y1) return;
+    this.mk('circle', { cx: this.sx(x), cy: this.sy(y), r, fill: hollow ? 'var(--surface)' : c, stroke: hollow ? c : 'var(--surface)', 'stroke-width': 2 }, this.gTop);
+  }
+  text(x, y, s, { c = 'var(--ink-2)', anchor = 'start', dx = 0, dy = 0, bare = false } = {}) {
+    if (!isFinite(x) || !isFinite(y)) return;
+    const X = this.sx(x) + dx, Y = Math.min(Math.max(this.sy(y) + dy, this.m.t + 10), this.h - this.m.b - 4);
+    return this.ptext(X, Y, s, { c, anchor, bare });
+  }
+  arrows(points) {
+    const Y = this.h - this.m.b - 8;
+    for (const p of points) {
+      if (!isFinite(p.x) || p.x <= this.x0 || p.x >= this.x1 || !p.dir) continue;
+      const X = this.sx(p.x), d = p.dir;
+      this.mk('path', { d: `M${X + 6 * d} ${Y} L${X - 4 * d} ${Y - 5} L${X - 4 * d} ${Y + 5}Z`, fill: 'var(--ink-2)' }, this.gTop);
+    }
+  }
+  arrow(x1, y1, x2, y2, { c = 'var(--ink)', w = 2 } = {}) {
+    const X1 = this.sx(x1), Y1 = this.sy(y1), X2 = this.sx(x2), Y2 = this.sy(y2), L = Math.hypot(X2 - X1, Y2 - Y1);
+    if (L < 1) return;
+    const ux = (X2 - X1) / L, uy = (Y2 - Y1) / L, h = Math.min(8, L * .5);
+    this.mk('path', { d: `M${X1} ${Y1}L${X2} ${Y2}M${X2 - h * (ux - uy * .5)} ${Y2 - h * (uy + ux * .5)}L${X2} ${Y2}L${X2 - h * (ux + uy * .5)} ${Y2 - h * (uy - ux * .5)}`, stroke: c, 'stroke-width': w, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, this.gTop);
+  }
+  field(F, nx = 18, ny = 11) {
+    const ppx = this.sx(1) - this.sx(0), ppy = this.sy(1) - this.sy(0);
+    for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+      const x = this.x0 + (i + .5) / nx * (this.x1 - this.x0), y = this.y0 + (j + .5) / ny * (this.y1 - this.y0);
+      if (y <= 0 || x <= 0) continue;
+      const [dx, dy] = F(x, y), px = dx * ppx, py = dy * ppy, L = Math.hypot(px, py);
+      if (!L || !isFinite(L)) continue;
+      const ux = px / L, uy = py / L, X = this.sx(x), Y = this.sy(y), s = 7, tx_ = X + ux * s, ty = Y + uy * s;
+      const hx1 = tx_ - 5 * (ux * .9 - uy * .45), hy1 = ty - 5 * (uy * .9 + ux * .45), hx2 = tx_ - 5 * (ux * .9 + uy * .45), hy2 = ty - 5 * (uy * .9 - ux * .45);
+      this.mk('path', { d: `M${X - ux * s} ${Y - uy * s}L${tx_} ${ty}M${hx1} ${hy1}L${tx_} ${ty}L${hx2} ${hy2}`, stroke: 'var(--ink-3)', 'stroke-width': 1.2, fill: 'none', opacity: .6, 'stroke-linecap': 'round' }, this.g);
+    }
+  }
+  hover(xs, series, xname) { this.hov = { xs, series, xname }; }
+  move(e) {
+    this.lastE = e; this.gH.innerHTML = '';
+    const p = this.hov && this.inv(e); if (!p) { this.tip.hidden = true; return; }
+    const { xs, series, xname } = this.hov;
+    let lo = 0, hi = xs.length - 1; while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (xs[mid] < p.x) lo = mid; else hi = mid; }
+    const i = (p.x - xs[lo] < xs[hi] - p.x) ? lo : hi, X = this.sx(xs[i]);
+    this.mk('line', { x1: X, x2: X, y1: this.m.t, y2: this.h - this.m.b, class: 'cross' }, this.gH);
+    let html = `<div class="th">${rich(xname)} = ${fmt(xs[i])}</div>`;
+    for (const s of series) {
+      const y = s.ys[i]; if (y === undefined || Number.isNaN(y)) continue;
+      if (isFinite(y) && y >= this.y0 && y <= this.y1 && !s.noDot) this.mk('circle', { cx: X, cy: this.sy(y), r: 4, fill: s.c, stroke: 'var(--surface)', 'stroke-width': 2 }, this.gH);
+      html += `<div class="tr"><i style="background:${s.c}"></i>${rich(s.name)}<b>${(s.f || fmt)(y)}</b></div>`;
+    }
+    this.tip.innerHTML = html; this.tip.hidden = false;
+    const tw = this.tip.offsetWidth; let left = p.px + 14; if (left + tw > this.W - 2) left = p.px - 14 - tw;
+    this.tip.style.left = Math.max(0, left) + 'px'; this.tip.style.top = Math.max(0, p.py - 12) + 'px';
+  }
+  leave() { this.lastE = null; this.gH.innerHTML = ''; this.tip.hidden = true; }
+}
+
+// sliders: label is static HTML and may contain \( \) math (typeset once by MathJax at startup)
+function makeControls(sel, specs, state, onChange) {
+  const box = $(sel), api = {};
+  for (const s of specs) {
+    const w = document.createElement('label'); w.className = 'ctl';
+    w.innerHTML = `<span class="cl">${s.label}</span><output></output><input type="range" id="${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${state[s.key]}">`;
+    box.appendChild(w);
+    const inp = w.querySelector('input'), out = w.querySelector('output');
+    const show = () => out.textContent = (s.f || fmt)(state[s.key]);
+    inp.addEventListener('input', () => { state[s.key] = +inp.value; if (s.fix) s.fix(); show(); onChange(); });
+    api[s.key] = { set(v) { state[s.key] = v; inp.value = v; show(); } }; show();
+  }
+  return api;
+}
+function readout(sel, items) { $(sel).innerHTML = items.map(([k, v]) => `<div class="ro"><div class="k">${rich(k)}</div><div class="v">${rich(v)}</div></div>`).join(''); }
+function rk4(f, y, t, dt) {
+  const k1 = f(t, y), k2 = f(t + dt / 2, y.map((v, i) => v + dt / 2 * k1[i])), k3 = f(t + dt / 2, y.map((v, i) => v + dt / 2 * k2[i])), k4 = f(t + dt, y.map((v, i) => v + dt * k3[i]));
+  return y.map((v, i) => v + dt / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
+}
+function player(btnSel, sliderSel, seconds, onFrame) {
+  const btn = $(btnSel), sl = $(sliderSel); let raf = null, last = 0;
+  const stop = () => { cancelAnimationFrame(raf); raf = null; btn.textContent = 'Play'; };
+  const step = ts => {
+    const dt = last ? (ts - last) / 1000 : 0; last = ts;
+    let v = +sl.value + dt / seconds; if (v >= 1) { v = 1; sl.value = v; onFrame(); stop(); return; }
+    sl.value = v; onFrame(); raf = requestAnimationFrame(step);
+  };
+  btn.addEventListener('click', () => { if (raf) return stop(); if (+sl.value >= 1) sl.value = 0; last = 0; btn.textContent = 'Pause'; raf = requestAnimationFrame(step); });
+  sl.addEventListener('input', () => { if (raf) stop(); onFrame(); });
+}
+const pts2 = (arr, key) => arr.map(p => p[key]);
+
+// filled rectangle in data coordinates (bars); thin surface stroke separates stacked segments
+Plot.prototype.rect = function (x0, x1, y0, y1, { c = 'var(--blue)', op = 1, dash = null } = {}) {
+  const X = this.sx(Math.min(x0, x1)), Y = this.sy(Math.max(y0, y1)), W = Math.abs(this.sx(x1) - this.sx(x0)), H = Math.abs(this.sy(y0) - this.sy(y1));
+  if (!(H > 0.2)) return;
+  const a = { x: X, y: Y, width: W, height: H, fill: c, 'fill-opacity': op, stroke: 'var(--surface)', 'stroke-width': 2 };
+  if (dash) Object.assign(a, { stroke: c, 'stroke-dasharray': dash, 'stroke-width': 1.5, 'fill-opacity': .18 });
+  this.mk('rect', a, this.g);
+};
+
+/* ================= 2.11 ================= */
+const P = { alpha: .3, beta: .5, s: .25, delta: .05, n: .02, Z: 1, k0r: .3, T: 300 };
+const ctl11 = makeControls('#ctl11', [
+  { key: 'alpha', id: 'alpha', label: 'capital share \\(\\alpha\\)', min: .05, max: .8, step: .01, fix: () => { if (P.alpha + P.beta > .97) ctl11.beta.set(+(.97 - P.alpha).toFixed(2)); } },
+  { key: 'beta', id: 'beta', label: 'labour share \\(\\beta\\)', min: .02, max: .9, step: .01, fix: () => { if (P.alpha + P.beta > .97) ctl11.alpha.set(+(.97 - P.beta).toFixed(2)); } },
+  { key: 's', id: 's', label: 'saving rate \\(s\\)', min: .02, max: .8, step: .01 },
+  { key: 'delta', id: 'delta', label: 'depreciation \\(\\delta\\)', min: .01, max: .15, step: .005 },
+  { key: 'n', id: 'n', label: 'population growth \\(n\\) (b, c)', min: 0, max: .05, step: .001, f: pct },
+  { key: 'Z', id: 'Z', label: 'land \\(Z\\) (\\(L_0=1\\))', min: .2, max: 5, step: .1 },
+  { key: 'k0r', id: 'k0r', label: '\\(k(0)\\), multiple of \\(k^*\\) at \\(n=0\\)', min: .02, max: 3, step: .01, f: v => v.toFixed(2) + '×' },
+  { key: 'T', id: 'T', label: 'horizon, Fig. 2 (years)', min: 50, max: 1000, step: 10, f: v => v.toFixed(0) },
+], P, update11);
+
+function m11() {
+  const { alpha: a, beta: b, s, delta: d, n, Z } = P;
+  const B = Math.pow(Z, 1 - a - b), kA = Math.pow(s * B / d, 1 / (1 - a));
+  const lam = (1 - a) * (n + d), gam = (1 - a - b) * n, c = (1 - a) * s * B, k0 = P.k0r * kA;
+  return { a, b, s, d, n, Z, B, kA, lam, gam, c, k0, x0: Math.pow(k0, 1 - a) };
+}
+const xB = (m, t) => m.x0 * Math.exp(-m.lam * t) + m.c / (m.lam - m.gam) * (Math.exp(-m.gam * t) - Math.exp(-m.lam * t));
+const kB = (m, t) => Math.pow(xB(m, t), 1 / (1 - m.a));
+const kTemp = (m, t) => Math.pow(m.s * m.B * Math.exp(-m.gam * t) / (m.n + m.d), 1 / (1 - m.a));
+
+/* ---- Fig 1 ---- */
+const setK0 = x => { ctl11.k0r.set(Math.min(3, Math.max(.02, +(x / m11().kA).toFixed(2)))); update11(); };
+const pA1 = new Plot('#pA1', { xlabel: 'capital per worker $k$', ylabel: 'per-worker flows', onClick: setK0 });
+const pA2 = new Plot('#pA2', { xlabel: 'capital per worker $k$', ylabel: '$g(k)=\\dot k/k$', onClick: setK0 });
+const pA3 = new Plot('#pA3', { xlabel: 'time $t$ (years)', ylabel: '$k(t)$' });
+// numerical path of k' = sBk^a - dk (RK4)
+function pathA(m, k0, T, N) {
+  const f = (t, y) => [m.s * m.B * Math.pow(Math.max(y[0], 0), m.a) - m.d * y[0]], dt = T / N, out = [k0];
+  let y = [k0]; for (let i = 0; i < N; i++) { y = rk4(f, y, i * dt, dt); out.push(y[0]); }
+  return out;
+}
+
+function drawA() {
+  const m = m11(), kmax = Math.max(2.2 * m.kA, 1.12 * m.k0), ks = linspace(0, kmax, 300);
+  const sav = ks.map(k => m.s * m.B * Math.pow(k, m.a)), dep = ks.map(k => m.d * k), kd = ks.map((k, i) => sav[i] - dep[i]);
+  pA1.render(p => {
+    p.dom(0, kmax, 0, 1.08 * Math.max(...sav, ...dep)); p.axes();
+    const i1 = ks.filter(k => k <= m.kA), n1 = i1.length;
+    p.band(i1, dep.slice(0, n1), sav.slice(0, n1), { c: 'var(--blue)', op: .12 });
+    p.band(ks.slice(n1 - 1), sav.slice(n1 - 1), dep.slice(n1 - 1), { c: 'var(--orange)', op: .12 });
+    p.line(ks, sav, { c: 'var(--blue)' }); p.line(ks, dep, { c: 'var(--orange)' });
+    p.vl(m.kA, {}); p.dot(m.kA, m.d * m.kA, { c: 'var(--ink)' }); p.text(m.kA, m.d * m.kA, '$k^*$', { dx: 8, dy: 16, c: 'var(--ink)' });
+    p.seg(m.k0, 0, m.k0, m.s * m.B * Math.pow(m.k0, m.a), { c: 'var(--aqua)', dash: '3 3', w: 1.5 });
+    p.dot(m.k0, 0, { c: 'var(--aqua)', hollow: true, r: 6 });
+    p.arrows(linspace(0, kmax, 9).slice(1, -1).filter(k => Math.abs(k - m.kA) > kmax * .06).map(k => ({ x: k, dir: Math.sign(m.kA - k) })));
+    p.hover(ks, [{ name: 'saving', c: 'var(--blue)', ys: sav }, { name: 'depreciation', c: 'var(--orange)', ys: dep }, { name: '$\\dot k$', c: 'var(--ink)', ys: kd, noDot: true }], '$k$');
+  });
+  const g = k => m.s * m.B * Math.pow(k, m.a - 1) - m.d, gs = ks.slice(1).map(g), kg = ks.slice(1);
+  const top = Math.max(3.3 * m.d, 1.3 * g(m.k0)), bot = -1.6 * m.d;
+  pA2.render(p => {
+    p.dom(0, kmax, bot, top); p.axes();
+    const up = kg.filter(k => k <= m.kA), dn = kg.filter(k => k >= m.kA);
+    p.band(up, up.map(() => 0), up.map(k => Math.min(g(k), top)), { c: 'var(--blue)', op: .12 });
+    p.band(dn, dn.map(g), dn.map(() => 0), { c: 'var(--orange)', op: .12 });
+    p.hl(0, { c: 'var(--ink-2)', dash: 'none', w: 1 });
+    p.hl(-m.d, { c: 'var(--ink-3)', dash: '5 4' }); p.text(kmax, -m.d, '$-\\delta$', { anchor: 'end', dy: 16 });
+    p.line(kg, gs, { c: 'var(--ink)' });
+    p.dot(m.kA, 0, { c: 'var(--ink)' }); p.text(m.kA, 0, '$k^*$', { dx: 6, dy: -10, c: 'var(--ink)' });
+    p.text(m.kA * .5, top, '$\\dot k>0$', { anchor: 'middle', dy: 18, c: 'var(--blue)' });
+    p.text(Math.min(m.kA * 1.6, kmax * .85), bot, '$\\dot k\\lt 0$', { anchor: 'middle', dy: -10, c: 'var(--orange)' });
+    const L = kmax * .05;
+    linspace(0, kmax, 9).slice(1, -1).filter(k => Math.abs(k - m.kA) > kmax * .08).forEach(k => { const d = Math.sign(m.kA - k); p.arrow(k - d * L / 2, 0, k + d * L / 2, 0, { c: 'var(--ink-2)', w: 1.5 }); });
+    p.dot(m.k0, g(m.k0), { c: 'var(--aqua)', hollow: true, r: 6 });
+    p.hover(kg, [{ name: '$g(k)$', c: 'var(--ink)', ys: gs }], '$k$');
+  });
+  const T = Math.max(40, Math.min(400, 5 * Math.LN2 / ((1 - m.a) * m.d))), N = 240, ts = linspace(0, T, N + 1);
+  const fan = [.05, .6, 1.6, 2.6].map(r => pathA(m, r * m.kA, T, N)), sel = pathA(m, m.k0, T, N);
+  pA3.render(p => {
+    p.dom(0, T, 0, 1.08 * Math.max(2.6 * m.kA, m.k0)); p.axes();
+    fan.forEach(ys => p.line(ts, ys, { c: 'var(--ink-3)', w: 1.2, op: .7 }));
+    p.hl(m.kA, {}); p.text(T, m.kA, '$k^*$', { anchor: 'end', dy: -6 });
+    p.line(ts, sel, { c: 'var(--aqua)', w: 2.5 });
+    p.hover(ts, [{ name: '$k(t)$', c: 'var(--aqua)', ys: sel }], '$t$');
+  });
+}
+
+/* ---- Fig 2 ---- */
+const pC1 = new Plot('#pC1', { xlabel: 'capital per worker $k$', ylabel: '$g(k,t)=\\dot k/k$' });
+const pC2 = new Plot('#pC2', { xlabel: 'time $t$ (years)', ylabel: '$k$' });
+const pC3 = new Plot('#pC3', { xlabel: 'time $t$ (years)', ylabel: 'price level (log scale)' });
+function drawC() {
+  const m = m11(), T = P.T, t = +$('#tC').value * T; $('#tC-o').textContent = t.toFixed(0);
+  const kmax = 1.4 * Math.max(m.k0, kTemp(m, 0)), ks = linspace(0, kmax, 300).slice(1);
+  const g = (k, u) => m.s * m.B * Math.exp(-m.gam * u) * Math.pow(k, m.a - 1) - (m.n + m.d);
+  const g0 = ks.map(k => g(k, 0)), gt = ks.map(k => g(k, t));
+  const kt = kB(m, t), kh = kTemp(m, t), top = 2.4 * (m.n + m.d), bot = -1.5 * (m.n + m.d);
+  pC1.render(p => {
+    p.dom(0, kmax, bot, top); p.axes();
+    p.hl(0, { c: 'var(--ink-2)', dash: 'none', w: 1 });
+    p.hl(-(m.n + m.d), { c: 'var(--ink-3)', dash: '5 4' }); p.text(kmax, -(m.n + m.d), '$-(n+\\delta)$', { anchor: 'end', dy: 16 });
+    p.line(ks, g0, { c: 'var(--ink-3)', dash: '5 4', w: 1.5 }); p.line(ks, gt, { c: 'var(--ink)' });
+    // full-height markers so k(t) and the target stay distinguishable even when close
+    const gk = g(kt, t), right = kt > kh;
+    p.vl(kh, { c: 'var(--blue)', dash: '6 4', w: 1.5 }); p.vl(kt, { c: 'var(--aqua)', dash: 'none', w: 2 });
+    p.text(kh, top, '$k^*(t)$', { anchor: right ? 'end' : 'start', dx: right ? -5 : 5, dy: 16, c: 'var(--blue)' });
+    p.text(kt, top, '$k(t)$', { anchor: right ? 'start' : 'end', dx: right ? 5 : -5, dy: 16, c: 'var(--aqua)' });
+    p.dot(kh, 0, { c: 'var(--blue)', hollow: true }); p.dot(kt, gk, { c: 'var(--aqua)' });
+    const d = Math.sign(kh - kt), L = kmax * .07;
+    if (d) p.arrow(kt, 0, kt + d * L, 0, { c: 'var(--aqua)', w: 2.5 });
+    p.hover(ks, [{ name: '$g(k,t)$', c: 'var(--ink)', ys: gt }, { name: '$g(k,0)$', c: 'var(--ink-3)', ys: g0 }], '$k$');
+  });
+  const ts = linspace(0, T, 300), kp = ts.map(u => kB(m, u)), kh_ = ts.map(u => kTemp(m, u));
+  pC2.render(p => {
+    p.dom(0, T, 0, 1.08 * Math.max(m.kA, ...kp, kh_[0])); p.axes();
+    p.hl(m.kA, { c: 'var(--ink-3)', dash: '2 4' }); p.text(T, m.kA, '$k^*$ when $n=0$', { anchor: 'end', dy: -6 });
+    p.line(ts, kh_, { c: 'var(--blue)', dash: '6 4' }); p.line(ts, kp, { c: 'var(--aqua)', w: 2.5 });
+    const ip = kp.indexOf(Math.max(...kp));
+    if (ip > 0 && ip < kp.length - 1) { p.dot(ts[ip], kp[ip], { c: 'var(--ink)', r: 4 }); p.text(ts[ip], kp[ip], '$k$ crosses $k^*(t)$: $\\dot k=0$, not at rest', { dx: 10, dy: -16, c: 'var(--ink)' }); }
+    p.vl(t, { c: 'var(--ink-2)', dash: '3 3' }); p.dot(t, kt, { c: 'var(--aqua)' }); p.dot(t, kh, { c: 'var(--blue)', hollow: true });
+    p.hover(ts, [{ name: '$k(t)$', c: 'var(--aqua)', ys: kp }, { name: '$k^*(t)$', c: 'var(--blue)', ys: kh_ }], '$t$');
+  });
+  // price levels, plotted as log10 so the growing land rent and the falling wage fit on one axis
+  const lny = u => Math.log(m.B) - m.gam * u + m.a * Math.log(kB(m, u)), L10 = Math.LN10;
+  const lw = ts.map(u => (Math.log(m.b) + lny(u)) / L10);
+  const lr = ts.map(u => (Math.log(m.a) + lny(u) - Math.log(kB(m, u))) / L10);
+  const lR = ts.map(u => (Math.log(1 - m.a - m.b) + lny(u) + m.n * u - Math.log(m.Z)) / L10);
+  const lev = v => fmt(Math.pow(10, v));
+  pC3.render(p => {
+    const all = [...lw, ...lR, ...lr]; const lo = Math.min(...all), hi = Math.max(...all);
+    p.dom(0, T, lo - .05 * (hi - lo), hi + .05 * (hi - lo)); p.axes({ yf: lev, yt: 4, zero: false }); // log scale: the level-1 gridline is not an axis
+    p.line(ts, lR, { c: 'var(--blue)' }); p.line(ts, lw, { c: 'var(--orange)' }); p.line(ts, lr, { c: 'var(--ink)' });
+    p.vl(t, { c: 'var(--ink-2)', dash: '3 3' });
+    p.hover(ts, [{ name: '$R_Z$', c: 'var(--blue)', ys: lR, f: lev }, { name: '$w$', c: 'var(--orange)', ys: lw, f: lev }, { name: '$r$', c: 'var(--ink)', ys: lr, f: lev }], '$t$');
+  });
+}
+
+/* ---- Fig 3 ---- */
+const pD1 = new Plot('#pD1', { xlabel: 'income per worker $y$', ylabel: '$n(y)$' });
+const pD2 = new Plot('#pD2', { xlabel: 'time $t$ (years)', ylabel: '$y(t)$' });
+const pD3 = new Plot('#pD3', { xlabel: 'time $t$ (years)', ylabel: '$L(t)$' });
+const pctAx = v => (v * 100).toFixed(1).replace('-', '−') + '%';
+function drawD() {
+  const m = m11(), T = +$('#T3').value, ybR = +$('#ybar').value; $('#ybar-o').textContent = ybR.toFixed(2) + '×'; $('#T3-o').textContent = T.toFixed(0);
+  const Zf = Math.pow(m.Z, 1 - m.a - m.b), Yf = (K, L) => Math.pow(L, m.b) * Math.pow(K, m.a) * Zf;
+  const y0 = Yf(m.k0, 1), yb = ybR * y0, nf = y => m.n * (1 - yb / y);
+  // steady state: y* = ybar and sY = dK pin down land per worker, hence L*
+  const zs = Math.pow(yb * Math.pow(m.s / m.d, -m.a / (1 - m.a)), (1 - m.a) / (1 - m.a - m.b)), Ls = m.Z / zs;
+  const f = (t, y) => [m.s * Yf(y[0], y[1]) - m.d * y[0], nf(Yf(y[0], y[1]) / y[1]) * y[1]];
+  const N = 600, dt = T / N, ts = [], yM = [], yX = [], lM = [];
+  let y = [m.k0, 1];
+  for (let i = 0; i <= N; i++) {
+    const t = i * dt; ts.push(t);
+    yM.push(Yf(y[0], y[1]) / y[1]); lM.push(Math.log10(y[1]));
+    yX.push(m.B * Math.exp(-m.gam * t) * Math.pow(kB(m, t), m.a));
+    y = rk4(f, y, t, dt);
+  }
+  const ymax = 1.15 * Math.max(...yM, ...yX, yb);
+  pD1.render(p => {
+    const ys = linspace(yb * .3, Math.max(ymax, 2 * yb), 200), ns = ys.map(nf);
+    p.dom(0, ys[ys.length - 1], -1.6 * m.n, 1.4 * m.n); p.axes({ yf: pctAx, xt: 4 });
+    p.hl(0, { c: 'var(--ink-2)', dash: 'none', w: 1 });
+    p.hl(m.n, { c: 'var(--ink-3)', dash: '5 4' });
+    p.line(ys, ns, { c: 'var(--blue)', w: 2.5 });
+    p.dot(yb, 0, { c: 'var(--ink)' }); p.text(yb, 0, '$\\bar y$', { dx: 6, dy: 16, c: 'var(--ink)' });
+    p.text(ys[ys.length - 1], .5 * m.n, '$L$ grows', { anchor: 'end', c: 'var(--blue)' });
+    p.text(yb, -1.2 * m.n, '$L$ shrinks', { dx: 10, c: 'var(--blue)' });
+    p.hover(ys, [{ name: '$n(y)$', c: 'var(--blue)', ys: ns, f: pct }], '$y$');
+  });
+  pD2.render(p => {
+    p.dom(0, T, 0, ymax); p.axes();
+    p.hl(yb, { c: 'var(--orange)', dash: '6 4', w: 1.5 }); p.text(T, yb, '$\\bar y$', { anchor: 'end', dy: -6 });
+    p.line(ts, yX, { c: 'var(--ink-3)' }); p.line(ts, yM, { c: 'var(--blue)', w: 2.5 });
+    p.hover(ts, [{ name: 'constant $n$', c: 'var(--ink-3)', ys: yX }, { name: '$n(y)$', c: 'var(--blue)', ys: yM }], '$t$');
+  });
+  pD3.render(p => {
+    const Lm = lM.map(v => Math.pow(10, v));
+    p.dom(0, T, 0, 1.12 * Math.max(...Lm, Ls)); p.axes();
+    p.hl(Ls, { c: 'var(--orange)', dash: '6 4', w: 1.5 }); p.text(T, Ls, '$L^*$', { anchor: 'end', dy: -6 });
+    p.line(ts, Lm, { c: 'var(--blue)', w: 2.5 });
+    p.hover(ts, [{ name: '$L(t)$', c: 'var(--blue)', ys: Lm }], '$t$');
+  });
+}
+
+function update11() { drawA(); drawC(); drawD(); }
+$('#ybar').addEventListener('input', drawD); $('#T3').addEventListener('input', drawD);
+player('#playC', '#tC', 8, drawC);
+
+/* ================= 2.12 ================= */
+const K = { sK: .6, n: .02, d: .05, a: .3 };
+makeControls('#ctl12', [
+  { key: 'sK', id: 'sK', label: 'capitalists’ saving \\(s_K\\)', min: .05, max: 1, step: .01 },
+  { key: 'n', id: 'n12', label: 'population growth \\(n\\)', min: 0, max: .06, step: .001, f: pct },
+  { key: 'd', id: 'd12', label: 'depreciation \\(\\delta\\)', min: .01, max: .15, step: .005 },
+  { key: 'a', id: 'a12', label: 'capital share \\(\\alpha\\)', min: .1, max: .8, step: .01 },
+], K, drawE);
+
+const pE1 = new Plot('#pE1', { xlabel: 'capital per worker $k$', ylabel: '$g(k)=\\dot k/k$' });
+const pE2 = new Plot('#pE2', { xlabel: 'capital per worker $k$', ylabel: 'per-worker flows' });
+const pE3 = new Plot('#pE3', { xlabel: 'capital per worker $k$', ylabel: 'consumption per worker' });
+function drawE() {
+  const { sK, a } = K, nd = K.n + K.d, f = k => Math.pow(k, a), fp = k => a * Math.pow(k, a - 1);
+  const kS = Math.pow(sK * a / nd, 1 / (1 - a)), kG = Math.pow(a / nd, 1 / (1 - a));
+  const kmax = 1.6 * kG, ks = linspace(kmax / 400, kmax, 400);
+  const marks = p => { p.vl(kS, { c: 'var(--blue)', dash: '4 4' }); p.vl(kG, { c: 'var(--aqua)', dash: '4 4' }); };
+  pE1.render(p => {
+    const g = ks.map(k => sK * fp(k) - nd), g1 = ks.map(k => fp(k) - nd);
+    p.dom(0, kmax, -1.5 * nd, 2.4 * nd); p.axes();
+    p.hl(0, { c: 'var(--ink-2)', dash: 'none', w: 1 });
+    p.line(ks, g1, { c: 'var(--aqua)', dash: '5 4', w: 1.8 }); p.line(ks, g, { c: 'var(--ink)' });
+    p.dot(kS, 0, { c: 'var(--blue)' }); p.text(kS, 0, '$k^*$', { anchor: 'end', dx: -5, dy: 16, c: 'var(--blue)' });
+    p.dot(kG, 0, { c: 'var(--aqua)', hollow: true }); p.text(kG, 0, '$k_{gold}$', { dx: 5, dy: -8, c: 'var(--ink)' });
+    const L = kmax * .05;
+    linspace(0, kmax, 9).slice(1, -1).filter(k => Math.abs(k - kS) > kmax * .08).forEach(k => { const d = Math.sign(kS - k); p.arrow(k - d * L / 2, 0, k + d * L / 2, 0, { c: 'var(--ink-2)', w: 1.5 }); });
+    p.hover(ks, [{ name: '$g(k)$', c: 'var(--ink)', ys: g }, { name: '$s_K=1$', c: 'var(--aqua)', ys: g1 }], '$k$');
+  });
+  pE2.render(p => {
+    const sv = ks.map(k => sK * fp(k) * k), ci = ks.map(k => fp(k) * k), dep = ks.map(k => nd * k);
+    p.dom(0, kmax, 0, 1.1 * Math.max(...ci, dep[dep.length - 1])); p.axes(); marks(p);
+    p.line(ks, ci, { c: 'var(--aqua)', dash: '5 4', w: 1.8 }); p.line(ks, sv, { c: 'var(--blue)' }); p.line(ks, dep, { c: 'var(--orange)' });
+    p.dot(kS, nd * kS, { c: 'var(--blue)' }); p.text(kS, nd * kS, '$k^*$', { anchor: 'end', dx: -6, dy: -6, c: 'var(--blue)' });
+    p.dot(kG, nd * kG, { c: 'var(--aqua)', hollow: true }); p.text(kG, nd * kG, '$k_{gold}$', { dx: 6, dy: 14, c: 'var(--ink)' });
+    p.hover(ks, [{ name: 'saving', c: 'var(--blue)', ys: sv }, { name: 'capital income', c: 'var(--aqua)', ys: ci }, { name: '$(n+\\delta)k$', c: 'var(--orange)', ys: dep }], '$k$');
+  });
+  pE3.render(p => {
+    const cs = ks.map(k => f(k) - nd * k), hi = Math.max(...cs), cS = f(kS) - nd * kS, cG = f(kG) - nd * kG;
+    p.dom(0, kmax, 0, 1.2 * hi); p.axes(); marks(p);
+    p.line(ks, cs, {});
+    p.dot(kG, cG, { c: 'var(--aqua)', hollow: true, r: 6 }); p.text(kG, cG, '$c_{gold}$', { dy: -12, anchor: 'middle', c: 'var(--ink)' });
+    p.dot(kS, cS, { c: 'var(--blue)', r: 6 }); p.text(kS, cS, '$c^*$', { dx: -8, dy: -8, anchor: 'end', c: 'var(--blue)' });
+    p.hover(ks, [{ name: '$c(k)$', c: 'var(--ink)', ys: cs }], '$k$');
+  });
+}
+
+update11(); drawE();
+onMath(() => { update11(); drawE(); });
+
+</script>
