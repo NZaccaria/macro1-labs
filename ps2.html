@@ -700,7 +700,7 @@ function drawP3() {
   const m = model(R0), kmax = R0.kview * m.kg, sd = saddle(m, kmax * 1.05);
   const cmax = 1.35 * Math.max(m.f(m.kg) - (m.n + m.d) * m.kg, m.cs);
   p3.render(p => {
-    const { ks, kd } = drawPhase(p, m, sd, kmax, cmax);
+    drawPhase(p, m, sd, kmax, cmax);
     p.dot(m.ks, m.cs, { c: 'var(--ink)', r: 6 }); p.text(m.ks, m.cs, '$(k^*,c^*)$', { dx: 10, dy: 20, c: 'var(--ink)' });
     p.text(kmax * .98, m.f(kmax * .98) - (m.n + m.d) * kmax * .98, '$\\dot k=0$', { anchor: 'end', dy: -8, c: 'var(--ink)' });
     p.text(m.ks, cmax, '$\\dot c=0$', { dx: 6, dy: 16, c: 'var(--ink)' });
@@ -716,8 +716,6 @@ function drawP3() {
       }
       p.dot(user.k, user.c, { c: 'var(--ink)', hollow: true, r: 6 });
     }
-    const sc = ks.map(k => { const h = saddleC(m, sd, k); return h ? h.c : NaN; });
-    p.hover(ks, [{ name: '$\\dot k=0$ locus', c: 'var(--blue)', ys: kd }, { name: 'saddle path', c: 'var(--aqua)', ys: sc }], '$k$');
   });
 }
 
